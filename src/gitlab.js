@@ -193,6 +193,11 @@ export default class VerdaccioGitLab implements IPluginAuth {
     for (let real_group of user.real_groups) { // jscs:ignore requireCamelCaseOrUpperCaseIdentifiers
       this.logger.trace(`[gitlab] publish: checking group: ${real_group} for user: ${user.name || ''} and package: ${_package.name}`);
 
+      if (this._matchGroupWithScope(real_group, _package.name)) {
+        packageScopePermit = true;
+        break;
+      }
+
       if (this._matchGroupWithPackage(real_group, _package.name)) {
         packagePermit = true;
         break;
@@ -209,11 +214,7 @@ export default class VerdaccioGitLab implements IPluginAuth {
       return cb(httperror[403](`must have required permissions: ${this.publishLevel || ''} at ${missingPerm}`));
     }
   }
-
-  _matchGroupWithPackage(real_group: string, package_name: string): boolean {
-    if (real_group === package_name) {
-      return true
-    }
+  _matchGroupWithScope(real_group: string, package_name: string): boolean {
 
     if (package_name.indexOf('@') === 0) {
       const split_real_group = real_group.split('/');
@@ -224,12 +225,20 @@ export default class VerdaccioGitLab implements IPluginAuth {
       }
 
       for (let i = 0; i < split_real_group.length; i += 1) {
-        if (split_real_group[i] !== split_package_name[i]) {
+        if (split_real_group[i].toLocaleLowerCase() !== split_package_name[i].toLocaleLowerCase()) {
           return false;
         }
       }
 
       return true;
+    }
+
+    return false;
+  }
+
+  _matchGroupWithPackage(real_group: string, package_name: string): boolean {
+    if (real_group === package_name) {
+      return true
     }
 
     return false;
