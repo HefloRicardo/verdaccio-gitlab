@@ -119,7 +119,15 @@ export default class VerdaccioGitLab implements IPluginAuth {
       this.logger.trace('[gitlab] querying gitlab user groups with params:', gitlabPublishQueryParams);
 
       const groupsPromise = GitlabAPI.Groups.all(gitlabPublishQueryParams).then(groups => {
-        return groups.filter(group => group.path === group.full_path).map(group => group.path);
+        // add groups initial name and also split to add subgroups permissions like
+        // Group1/Group2/Project (permissions to Group1, Group2 and Group1/Group2)
+        return groups
+          .reduce((accumulator, group) => {
+            let next = accumulator.concat(group.path);
+            if (group.path !== group.full_path)
+              accumulator.concat(group.full_path);
+            return next;
+          }, []);
       });
 
       const projectsPromise = GitlabAPI.Projects.all(gitlabPublishQueryParams).then(projects => {
